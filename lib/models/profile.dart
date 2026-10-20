@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:flclashx/clash/core.dart';
 import 'package:flclashx/common/common.dart';
 import 'package:flclashx/enum/enum.dart';
@@ -181,17 +182,33 @@ extension ProfileExtension on Profile {
       if (details.model != null) headers['x-device-model'] = details.model;
     }
 
-    final response = await request.getFileResponseForUrl(
-      url,
-      headers: headers.isNotEmpty ? headers : null,
-    );
+    Response<Uint8List> response;
+    try {
+      response = await request.getFileResponseForUrl(
+        url,
+        headers: headers.isNotEmpty ? headers : null,
+      );
+    } on DioException catch (e) {
+      // Some Remnawave panels serve the subscription to the Happ client only
+      // and answer 404 to everyone else; retry as Happ (Xray JSON comes back).
+      if (e.response?.statusCode != 404) rethrow;
+      response = await request.getFileResponseForUrl(
+        url,
+        headers: headers.isNotEmpty ? headers : null,
+        userAgent: XrayConverter.happUserAgent,
+      );
+    }
 
     final disposition = response.headers.value("content-disposition");
     final userinfo = response.headers.value('subscription-userinfo');
     
-    final responseData = response.data;
+    var responseData = response.data;
     if (responseData == null) {
       throw Exception("Failed to get profile data from response.");
+    }
+    final text = utf8.decode(responseData, allowMalformed: true);
+    if (XrayConverter.isXrayJson(text)) {
+      responseData = utf8.encode(XrayConverter.convert(text));
     }
 
     final providerHeaders = <String, String>{};

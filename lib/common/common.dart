@@ -38,6 +38,7 @@ export 'string.dart';
 export 'system.dart';
 export 'text.dart';
 export 'tray.dart';
+export 'xray.dart';
 export 'utils.dart';
 export 'window.dart';
 export 'windows.dart';

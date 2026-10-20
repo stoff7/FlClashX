@@ -50,10 +50,11 @@ class Request {
   Future<Response<Uint8List>> getFileResponseForUrl(
     String rawUrl, {
     Map<String, dynamic>? headers,
+    String? userAgent,
   }) async {
     final url = rawUrl.normalizeUrlCredentials;
-    final requestHeaders = headers ?? {};
-    requestHeaders['User-Agent'] = globalState.ua;
+    final requestHeaders = {...?headers};
+    requestHeaders['User-Agent'] = userAgent ?? globalState.ua;
 
     final dio = _dio;
 
