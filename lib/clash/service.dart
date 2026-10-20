@@ -119,10 +119,6 @@ class ClashService extends ClashHandlerInterface {
       if (process != null) {
         await shutdown();
       }
-      // Swap in a downloaded core update before anything spawns the binary — a
-      // spawn-first order either locks the exe (Windows) or leaves the whole
-      // session on the old core (macOS/Linux).
-      await coreUpdater.applyPending();
       // Reset AFTER shutdown(): shutdown -> _destroySocket flushes/closes the
       // live socket via its `socketCompleter.isCompleted` guard, which a fresh
       // (incomplete) completer would otherwise defeat.

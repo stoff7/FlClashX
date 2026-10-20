@@ -130,50 +130,6 @@ class Request {
     return data;
   }
 
-  Future<Map<String, dynamic>?> checkForCoreUpdate(String currentCoreVersion) async {
-    final response = await _dio.get(
-      "https://api.github.com/repos/$repository/releases",
-      options: Options(responseType: ResponseType.json),
-      queryParameters: {'per_page': 20},
-    );
-    if (response.statusCode != 200) return null;
-    final current = currentCoreVersion.replaceAll(RegExp(r'^v'), '');
-    final releases = response.data as List<dynamic>;
-    for (final release in releases) {
-      final tag = release['tag_name'] as String? ?? '';
-      if (!tag.startsWith('core-')) continue;
-      final remote = tag.replaceFirst('core-', '').replaceAll(RegExp(r'^v'), '');
-      // Strictly newer only: a locally built core can be ahead of the newest
-      // core-* release, and offering it back would be a silent downgrade.
-      if (utils.compareVersions(remote, current) <= 0) return null;
-      return release as Map<String, dynamic>;
-    }
-    return null;
-  }
-
-  Future<String?> downloadCoreUpdate(
-    String downloadUrl,
-    String targetPath, {
-    void Function(int received, int total)? onProgress,
-  }) async {
-    try {
-      final tmpPath = '$targetPath.tmp';
-      await _dio.download(
-        downloadUrl,
-        tmpPath,
-        onReceiveProgress: onProgress,
-      );
-      final tmpFile = File(tmpPath);
-      if (!await tmpFile.exists()) return 'Download failed';
-      final target = File(targetPath);
-      if (await target.exists()) await target.delete();
-      await tmpFile.rename(targetPath);
-      return null;
-    } catch (e) {
-      return e.toString();
-    }
-  }
-
   // Tried in order, first success wins. All return a dead-simple JSON with an
   // IPv4 exit IP + country code:
   //   ip.sb     — `api-ipv4` host is A-only, so the exit is forced over IPv4
@@ -274,35 +230,6 @@ class Request {
       final data = response.data as String;
       return data.isEmpty;
     } catch (_) {
-      return false;
-    }
-  }
-
-  /// Ask the SYSTEM helper to swap in the pending core update. Needed for
-  /// per-machine installs (Program Files) where the unelevated app can't
-  /// overwrite the binary itself. The helper stops the core, moves the file and
-  /// refreshes the allow-list hash. Returns true only if it reports success.
-  Future<bool> replaceCoreByHelper(String pendingPath, String targetPath) async {
-    try {
-      final response = await _dio
-          .post(
-            "http://$localhost:$helperPort/replace_core",
-            data: json.encode({
-              "pending": pendingPath,
-              "target": targetPath,
-            }),
-            options: Options(responseType: ResponseType.plain),
-          )
-          .timeout(const Duration(milliseconds: 10000));
-      if (response.statusCode != HttpStatus.ok) return false;
-      final data = response.data as String;
-      if (data.isNotEmpty) {
-        commonPrint.log("replaceCoreByHelper: $data");
-        return false;
-      }
-      return true;
-    } catch (e) {
-      commonPrint.log("replaceCoreByHelper error: $e");
       return false;
     }
   }

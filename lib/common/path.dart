@@ -53,8 +53,6 @@ class AppPath {
     return join(executableDirPath, "FlClashCore$executableExtension");
   }
 
-  String get corePendingPath => '$corePath.pending';
-
   /// Allow-list consumed by the Windows helper service; lives next to the
   /// helper exe so per-machine installs keep it admin-writable only.
   String get allowedCoreHashPath =>
