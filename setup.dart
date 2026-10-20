@@ -241,6 +241,56 @@ class Build {
     );
   }
 
+  /// mihomo's REALITY client announces itself as Xray 1.8.2 in the ClientHello
+  /// session id. Servers with a `minClientVer` above that reject the handshake
+  /// ("REALITY authentication failed") while Xray/Happ connect fine.
+  ///
+  /// The build uses a patched copy of the pinned mihomo module (build/mihomo)
+  /// through an alternate go.mod (`-modfile`), so neither core/go.mod nor the
+  /// module cache is touched. Fails loudly if upstream changes those lines.
+  static const _realityClientVersion = [26, 3, 27];
+
+  static Future<String> _patchedMihomoModfile() async {
+    final moduleDir = (await Process.run(
+      "go",
+      ["list", "-m", "-f", "{{.Dir}}", "github.com/metacubex/mihomo"],
+      workingDirectory: _coreDir,
+    ))
+        .stdout
+        .toString()
+        .trim();
+    final buildDir = join(current, "build", "core-patch");
+    final copyDir = join(buildDir, "mihomo");
+    if (Directory(copyDir).existsSync()) {
+      Directory(copyDir).deleteSync(recursive: true);
+    }
+    Directory(buildDir).createSync(recursive: true);
+    await Process.run("cp", ["-R", moduleDir, copyDir]);
+    await Process.run("chmod", ["-R", "u+w", copyDir]);
+
+    final reality = File(join(copyDir, "component", "tls", "reality.go"));
+    var source = reality.readAsStringSync();
+    const pinned = [1, 8, 2];
+    for (var i = 0; i < 3; i++) {
+      final line = "hello.SessionId[$i] = ${pinned[i]}\n";
+      if (!source.contains(line)) {
+        throw "REALITY version patch: '$line' not found in $moduleDir";
+      }
+      source = source.replaceFirst(
+          line, "hello.SessionId[$i] = ${_realityClientVersion[i]}\n");
+    }
+    reality.writeAsStringSync(source);
+
+    // -modfile=X.mod reads X.sum next to it.
+    final modfile = join(buildDir, "go.mod");
+    File(join(_coreDir, "go.sum")).copySync(join(buildDir, "go.sum"));
+    File(modfile).writeAsStringSync(
+      "${File(join(_coreDir, "go.mod")).readAsStringSync()}\n"
+      "replace github.com/metacubex/mihomo => $copyDir\n",
+    );
+    return modfile;
+  }
+
   static Future<List<String>> buildCore({
     required Mode mode,
     required Target target,
@@ -295,6 +345,7 @@ class Build {
         "build",
         "-ldflags=-w -s -X github.com/metacubex/mihomo/constant.Version=$coreVersion",
         "-tags=${tagsFor(target)}",
+        "-modfile=${await _patchedMihomoModfile()}",
         if (isLib) "-buildmode=c-shared",
         "-o",
         realOutPath,
