@@ -458,7 +458,14 @@ class AppController {
 
     final showHwidLimit = mergedHeaders['x-hwid-max-devices-reached']?.toLowerCase() == 'true';
     final announceText = mergedHeaders['announce'];
-    if (showHwidLimit && announceText != null && announceText.isNotEmpty) {
+    // Profiles auto-update hourly: show the limit notice once per announce
+    // text instead of popping the same dialog after every update.
+    final shownKey = 'hwidLimitNoticeShown_${profile.id}';
+    if (showHwidLimit &&
+        announceText != null &&
+        announceText.isNotEmpty &&
+        prefs.getString(shownKey) != announceText) {
+      await prefs.setString(shownKey, announceText);
       _showHwidLimitNotice(announceText, mergedHeaders['support-url']);
     }
 

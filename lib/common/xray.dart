@@ -119,17 +119,20 @@ class XrayConverter {
   /// Node domains of these panels are .ru hosts; FlClashX's default
   /// proxy-server-nameserver (doh.pub) fails to resolve them from Russia, which
   /// left only IP-addressed nodes working. Mirror Happ's DNS instead.
+  /// Yandex DNS gets both of its addresses: when 77.88.8.8 alone was
+  /// unreachable from a home network, every .ru site stopped resolving.
+  static const _yandexDns = ['77.88.8.8', '77.88.8.1'];
   static const _dns = {
     'enable': true,
     'listen': '0.0.0.0:1053',
     'ipv6': false,
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
-    'default-nameserver': ['77.88.8.8', '1.1.1.1'],
-    'proxy-server-nameserver': ['77.88.8.8', 'https://1.1.1.1/dns-query'],
+    'default-nameserver': [..._yandexDns, '1.1.1.1'],
+    'proxy-server-nameserver': [..._yandexDns, 'https://1.1.1.1/dns-query'],
     'nameserver': ['https://1.1.1.1/dns-query', 'https://8.8.8.8/dns-query'],
     'nameserver-policy': {
-      '+.ru,+.su,+.xn--p1ai': '77.88.8.8',
+      '+.ru,+.su,+.xn--p1ai': _yandexDns,
     },
   };
 

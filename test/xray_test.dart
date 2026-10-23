@@ -108,4 +108,10 @@ void main() {
     expect(rules.last, 'MATCH,PROXY');
     expect(rules.where((r) => r.contains('inbound')), isEmpty);
   });
+
+  test('resolves .ru through both Yandex DNS addresses', () {
+    final dns = json.decode(XrayConverter.convert(subscription))['dns'];
+    expect(dns['nameserver-policy']['+.ru,+.su,+.xn--p1ai'], ['77.88.8.8', '77.88.8.1']);
+    expect(dns['proxy-server-nameserver'], contains('77.88.8.1'));
+  });
 }
