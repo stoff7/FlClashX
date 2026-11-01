@@ -251,22 +251,34 @@ class Build {
   static const _realityClientVersion = [26, 3, 27];
 
   static Future<String> _patchedMihomoModfile() async {
-    final moduleDir = (await Process.run(
+    final result = await Process.run(
       "go",
       ["list", "-m", "-f", "{{.Dir}}", "github.com/metacubex/mihomo"],
       workingDirectory: _coreDir,
-    ))
-        .stdout
-        .toString()
-        .trim();
+    );
+    final moduleDir = result.stdout.toString().trim();
+    if (result.exitCode != 0 || moduleDir.isEmpty) {
+      throw "Could not locate mihomo; run 'go mod download' in core first.\n"
+          "${result.stderr}";
+    }
     final buildDir = join(current, "build", "core-patch");
     final copyDir = join(buildDir, "mihomo");
     if (Directory(copyDir).existsSync()) {
       Directory(copyDir).deleteSync(recursive: true);
     }
     Directory(buildDir).createSync(recursive: true);
-    await Process.run("cp", ["-R", moduleDir, copyDir]);
-    await Process.run("chmod", ["-R", "u+w", copyDir]);
+    // Create writable files using Dart: the Go cache is read-only, and Windows
+    // runners do not provide the Unix cp/chmod commands.
+    await for (final entity in Directory(moduleDir).list(recursive: true)) {
+      final destination = join(copyDir, relative(entity.path, from: moduleDir));
+      if (entity is Directory) {
+        await Directory(destination).create(recursive: true);
+      } else if (entity is File) {
+        final file = File(destination);
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(await entity.readAsBytes());
+      }
+    }
 
     final reality = File(join(copyDir, "component", "tls", "reality.go"));
     var source = reality.readAsStringSync();
@@ -286,7 +298,7 @@ class Build {
     File(join(_coreDir, "go.sum")).copySync(join(buildDir, "go.sum"));
     File(modfile).writeAsStringSync(
       "${File(join(_coreDir, "go.mod")).readAsStringSync()}\n"
-      "replace github.com/metacubex/mihomo => $copyDir\n",
+      'replace github.com/metacubex/mihomo => "${copyDir.replaceAll('\\', '/')}"\n',
     );
     return modfile;
   }
