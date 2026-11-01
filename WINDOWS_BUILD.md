@@ -5,8 +5,8 @@ This fork builds the Windows application on GitHub Actions using
 starts a build on `windows-2022`. The workflow also supports `workflow_dispatch`;
 GitHub exposes manual dispatch once the workflow is present on the default branch.
 
-The build uses Flutter 3.41.7, Go 1.26.0, the runner's Rust/MSVC toolchain and
-Inno Setup 6.4.3. It calls `dart setup.dart windows --arch amd64 --env stable`,
+The build uses Flutter 3.41.7, Go 1.26.0 and the runner's Rust/MSVC toolchain and
+Inno Setup 6 compiler. It calls `dart setup.dart windows --arch amd64 --env stable`,
 which compiles the pinned mihomo core with the REALITY version patch, the Windows
 helper service, the Flutter app, a portable ZIP and an EXE installer.
 
