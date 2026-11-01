@@ -9,6 +9,8 @@ The build uses Flutter 3.41.7, Go 1.26.0 and the runner's Rust/MSVC toolchain an
 Inno Setup 6 compiler. It calls `dart setup.dart windows --arch amd64 --env stable`,
 which compiles the pinned mihomo core with the REALITY version patch, the Windows
 helper service, the Flutter app, a portable ZIP and an EXE installer.
+The packages include the redistributable MSVC runtime DLLs needed to launch on
+a Windows installation without developer tools.
 
 ## Constraints
 
@@ -39,7 +41,8 @@ Windows helper service.
 ## Acceptance checks
 
 CI must pass `flutter test test/xray_test.dart`, compile the patched core and
-helper, compile the Windows application and create both packages with checksums.
+helper, compile the Windows application, verify the bundled executables and MSVC
+runtime DLLs, and create both packages with checksums.
 
 On a Windows computer, install the EXE, launch the app, import a Happ subscription
 and check connectivity in both system proxy and TUN modes. These interactive

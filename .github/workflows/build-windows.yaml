@@ -56,6 +56,10 @@ jobs:
       - name: Verify packages and record checksums
         shell: pwsh
         run: |
+          $bundle = 'build/windows/x64/runner/Release'
+          foreach ($name in @('FlClashX.exe', 'FlClashCore.exe', 'FlClashHelperService.exe', 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
+            if (!(Test-Path (Join-Path $bundle $name))) { throw "Missing bundled file: $name" }
+          }
           $files = @(
             'FlClashX-windows-amd64-setup.exe',
             'FlClashX-windows-amd64.zip'

@@ -72,6 +72,12 @@ endif()
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
+# Ship the redistributable MSVC runtime alongside the app so a clean Windows
+# installation can launch both the Flutter runner and the helper service.
+set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${INSTALL_BUNDLE_LIB_DIR}")
+set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT Runtime)
+include(InstallRequiredSystemLibraries)
+
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
